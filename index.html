@@ -147,6 +147,13 @@
             flex: 1;
         }
 
+        .btn-tertiary {
+            background: rgba(100, 100, 100, 0.2);
+            color: #ddd;
+            border: 1px solid #666;
+            flex: 1;
+        }
+
         button:hover {
             transform: translateY(-3px);
             box-shadow: 0 7px 15px rgba(0, 0, 0, 0.3);
@@ -158,6 +165,10 @@
 
         .btn-secondary:hover {
             background: rgba(67, 97, 238, 0.3);
+        }
+
+        .btn-tertiary:hover {
+            background: rgba(100, 100, 100, 0.3);
         }
 
         .image-container {
@@ -176,7 +187,7 @@
             max-width: 100%;
             max-height: 100%;
             display: block;
-            background: #0a0f1e;
+            background: #ffffff;
         }
 
         .placeholder {
@@ -278,6 +289,21 @@
             color: #dc3545;
         }
 
+        .format-info {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .format-tag {
+            background: rgba(76, 201, 240, 0.2);
+            border: 1px solid #4cc9f0;
+            border-radius: 20px;
+            padding: 5px 15px;
+            font-size: 0.9rem;
+        }
+
         footer {
             text-align: center;
             padding: 25px;
@@ -313,22 +339,24 @@
             <div class="input-section">
                 <h2 class="section-title"><i class="fas fa-code"></i> JSON Input</h2>
                 <div class="input-description">
-                    <p>Enter JSON data with pixel positions and RGB values. Each pixel should have:</p>
+                    <p>Enter JSON data with pixel positions and color values. Each pixel should have:</p>
                     <ul style="margin: 10px 0 10px 25px;">
                         <li><code>x</code> - horizontal position</li>
                         <li><code>y</code> - vertical position</li>
-                        <li><code>color</code> - RGB array [R, G, B]</li>
+                        <li><code>color</code> - RGB array [R, G, B] <span class="format-tag">RGB Format</span></li>
+                        <li><strong>OR</strong></li>
+                        <li><code>gray</code> - Grayscale value (0-255) <span class="format-tag">Grayscale Format</span></li>
                     </ul>
                 </div>
                 
                 <div class="dimensions">
                     <div class="dimension-input">
                         <label for="width-input"><i class="fas fa-arrows-alt-h"></i> Canvas Width</label>
-                        <input type="number" id="width-input" min="1" max="500" value="16">
+                        <input type="number" id="width-input" min="1" value="16">
                     </div>
                     <div class="dimension-input">
                         <label for="height-input"><i class="fas fa-arrows-alt-v"></i> Canvas Height</label>
-                        <input type="number" id="height-input" min="1" max="500" value="16">
+                        <input type="number" id="height-input" min="1" value="16">
                     </div>
                 </div>
                 
@@ -360,8 +388,11 @@
                     <button id="generate-btn" class="btn-primary">
                         <i class="fas fa-magic"></i> Generate Image
                     </button>
-                    <button id="example-btn" class="btn-secondary">
-                        <i class="fas fa-lightbulb"></i> Load Example
+                    <button id="rgb-example-btn" class="btn-secondary">
+                        <i class="fas fa-paint-brush"></i> RGB Example
+                    </button>
+                    <button id="grayscale-example-btn" class="btn-tertiary">
+                        <i class="fas fa-moon"></i> Grayscale Example
                     </button>
                     <button id="clear-btn" class="btn-secondary">
                         <i class="fas fa-broom"></i> Clear
@@ -371,16 +402,30 @@
                 <div id="status" class="status"></div>
                 
                 <div class="info-box">
-                    <h3 class="info-title"><i class="fas fa-info-circle"></i> JSON Format Example</h3>
+                    <h3 class="info-title"><i class="fas fa-info-circle"></i> Supported Formats</h3>
+                    <div class="format-info">
+                        <span class="format-tag">RGB: {"x":0, "y":0, "color": [255, 0, 0]}</span>
+                        <span class="format-tag">Grayscale: {"x":0, "y":0, "gray": 128}</span>
+                    </div>
+                    
                     <div class="json-example">
-                        {<br>
-                        &nbsp; "pixels": [<br>
-                        &nbsp;&nbsp;&nbsp;{"x": 0, "y": 0, "color": [255, 0, 0]},<br>
-                        &nbsp;&nbsp;&nbsp;{"x": 1, "y": 0, "color": [0, 255, 0]},<br>
-                        &nbsp;&nbsp;&nbsp;{"x": 2, "y": 0, "color": [0, 0, 255]},<br>
-                        &nbsp;&nbsp;&nbsp;// ... more pixels ...<br>
-                        &nbsp; ]<br>
-                        }
+                        <h4>RGB Example:</h4>
+                        <pre>{
+  "pixels": [
+    {"x":0, "y":0, "color": [255, 0, 0]},
+    {"x":1, "y":0, "color": [0, 255, 0]},
+    // ...
+  ]
+}</pre>
+                        
+                        <h4>Grayscale Example:</h4>
+                        <pre>{
+  "pixels": [
+    {"x":0, "y":0, "gray": 78},
+    {"x":1, "y":0, "gray": 85},
+    // ...
+  ]
+}</pre>
                     </div>
                 </div>
             </div>
@@ -420,7 +465,8 @@
         document.addEventListener('DOMContentLoaded', function() {
             const jsonInput = document.getElementById('json-input');
             const generateBtn = document.getElementById('generate-btn');
-            const exampleBtn = document.getElementById('example-btn');
+            const rgbExampleBtn = document.getElementById('rgb-example-btn');
+            const grayscaleExampleBtn = document.getElementById('grayscale-example-btn');
             const clearBtn = document.getElementById('clear-btn');
             const downloadBtn = document.getElementById('download-btn');
             const zoomInBtn = document.getElementById('zoom-in');
@@ -435,8 +481,8 @@
             let pixelSize = 20; // Default pixel size for zoom
             let pixelData = [];
             
-            // Example JSON data
-            const exampleData = {
+            // Example JSON data (RGB)
+            const rgbExampleData = {
                 pixels: [
                     {x: 0, y: 0, color: [255, 0, 0]},
                     {x: 1, y: 0, color: [0, 255, 0]},
@@ -457,10 +503,63 @@
                 ]
             };
             
-            // Load example data
-            exampleBtn.addEventListener('click', function() {
-                jsonInput.value = JSON.stringify(exampleData, null, 2);
+            // Example JSON data (Grayscale)
+            const grayscaleExampleData = {
+                pixels: [
+                    {x: 0, y: 0, gray: 0},
+                    {x: 1, y: 0, gray: 32},
+                    {x: 2, y: 0, gray: 64},
+                    {x: 3, y: 0, gray: 96},
+                    {x: 4, y: 0, gray: 128},
+                    {x: 5, y: 0, gray: 160},
+                    {x: 6, y: 0, gray: 192},
+                    {x: 7, y: 0, gray: 224},
+                    {x: 8, y: 0, gray: 255},
+                    
+                    {x: 0, y: 1, gray: 255},
+                    {x: 1, y: 1, gray: 224},
+                    {x: 2, y: 1, gray: 192},
+                    {x: 3, y: 1, gray: 160},
+                    {x: 4, y: 1, gray: 128},
+                    {x: 5, y: 1, gray: 96},
+                    {x: 6, y: 1, gray: 64},
+                    {x: 7, y: 1, gray: 32},
+                    {x: 8, y: 1, gray: 0},
+                    
+                    {x: 0, y: 2, gray: 50},
+                    {x: 1, y: 2, gray: 75},
+                    {x: 2, y: 2, gray: 100},
+                    {x: 3, y: 2, gray: 125},
+                    {x: 4, y: 2, gray: 150},
+                    {x: 5, y: 2, gray: 175},
+                    {x: 6, y: 2, gray: 200},
+                    {x: 7, y: 2, gray: 225},
+                    {x: 8, y: 2, gray: 255},
+                    
+                    {x: 0, y: 3, gray: 255},
+                    {x: 1, y: 3, gray: 225},
+                    {x: 2, y: 3, gray: 200},
+                    {x: 3, y: 3, gray: 175},
+                    {x: 4, y: 3, gray: 150},
+                    {x: 5, y: 3, gray: 125},
+                    {x: 6, y: 3, gray: 100},
+                    {x: 7, y: 3, gray: 75},
+                    {x: 8, y: 3, gray: 50}
+                ]
+            };
+            
+            // Load RGB example data
+            rgbExampleBtn.addEventListener('click', function() {
+                jsonInput.value = JSON.stringify(rgbExampleData, null, 2);
                 widthInput.value = 4;
+                heightInput.value = 4;
+                generatePixelArt();
+            });
+            
+            // Load grayscale example data
+            grayscaleExampleBtn.addEventListener('click', function() {
+                jsonInput.value = JSON.stringify(grayscaleExampleData, null, 2);
+                widthInput.value = 9;
                 heightInput.value = 4;
                 generatePixelArt();
             });
@@ -528,8 +627,8 @@
                     const height = parseInt(heightInput.value) || 16;
                     
                     // Validate dimensions
-                    if (width <= 0 || height <= 0 || width > 500 || height > 500) {
-                        throw new Error('Invalid dimensions. Width and height must be between 1 and 500.');
+                    if (width <= 0 || height <= 0) {
+                        throw new Error('Width and height must be positive values.');
                     }
                     
                     // Set canvas dimensions
@@ -556,19 +655,19 @@
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 
                 // Get dimensions
-                const width = parseInt(widthInput.value) || 16;
-                const height = parseInt(heightInput.value) || 16;
+                const width = parseInt(widthInput.value) || 150;
+                const height = parseInt(heightInput.value) || 100;
                 
                 // Set canvas dimensions based on zoom
                 canvas.width = width * pixelSize;
                 canvas.height = height * pixelSize;
                 
-                // Draw background grid
-                ctx.fillStyle = '#0a0f1e';
+                // Draw white background
+                ctx.fillStyle = '#ffffff';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 
-                // Draw grid lines
-                ctx.strokeStyle = 'rgba(67, 97, 238, 0.1)';
+                // Draw grid lines (light gray)
+                ctx.strokeStyle = '#e0e0e0';
                 ctx.lineWidth = 1;
                 
                 for (let x = 0; x <= width; x++) {
@@ -589,15 +688,26 @@
                 pixelData.forEach(pixel => {
                     const x = pixel.x;
                     const y = pixel.y;
-                    const color = pixel.color;
                     
-                    if (x >= 0 && x < width && y >= 0 && y < height && 
-                        Array.isArray(color) && color.length >= 3) {
-                        
-                        const r = clamp(color[0], 0, 255);
-                        const g = clamp(color[1], 0, 255);
-                        const b = clamp(color[2], 0, 255);
-                        
+                    let r, g, b;
+                    
+                    // Handle RGB format
+                    if (pixel.color && Array.isArray(pixel.color) && pixel.color.length >= 3) {
+                        r = clamp(pixel.color[0], 0, 255);
+                        g = clamp(pixel.color[1], 0, 255);
+                        b = clamp(pixel.color[2], 0, 255);
+                    } 
+                    // Handle grayscale format
+                    else if (typeof pixel.gray !== 'undefined') {
+                        const grayValue = clamp(pixel.gray, 0, 255);
+                        r = g = b = grayValue;
+                    }
+                    // Invalid format
+                    else {
+                        return; // Skip invalid pixels
+                    }
+                    
+                    if (x >= 0 && x < width && y >= 0 && y < height) {
                         ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
                         ctx.fillRect(x * pixelSize, y * pixelSize, pixelSize, pixelSize);
                     }
@@ -632,8 +742,8 @@
                 return Math.min(Math.max(value, min), max);
             }
             
-            // Initialize with example data
-            jsonInput.value = JSON.stringify(exampleData, null, 2);
+            // Initialize with RGB example data
+            jsonInput.value = JSON.stringify(rgbExampleData, null, 2);
         });
     </script>
 </body>
